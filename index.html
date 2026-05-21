@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="משימות 🎙️">
+<meta name="theme-color" content="#0a0d12">
+<title>משימות 🎙️</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{font-family:system-ui,-apple-system,sans-serif;background:#0a0d12;color:#e0eaf5;min-height:100vh;direction:rtl;overscroll-behavior:none}
+:root{--ac:#3b9eff;--ac2:#00d68f;--warn:#ffb347;--danger:#ff4d6d;--surf:#111820;--surf2:#161e28;--border:rgba(59,158,255,0.15);--text2:#5a7a9a}
+.app{max-width:430px;margin:0 auto;padding-bottom:30px}
+.hdr{text-align:center;padding:16px 16px 8px;border-bottom:1px solid var(--border)}
+.hdr h1{font-size:18px;font-weight:700;color:var(--ac)}
+.hdr p{font-size:11px;color:var(--text2);margin-top:2px}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;padding:10px 14px 0}
+.stat{background:var(--surf);border-radius:10px;padding:8px;text-align:center}
+.stat-n{font-size:20px;font-weight:700}
+.stat-l{font-size:10px;color:var(--text2);text-transform:uppercase;margin-top:1px}
+.mic-wrap{display:flex;flex-direction:column;align-items:center;padding:14px 0 8px;gap:6px}
+.mic-btn{width:76px;height:76px;border-radius:50%;border:2px solid var(--border);background:var(--surf);font-size:28px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .2s;touch-action:manipulation;user-select:none}
+.mic-btn.on{border-color:var(--ac);background:rgba(59,158,255,0.12);box-shadow:0 0 0 8px rgba(59,158,255,0.1)}
+.mic-lbl{font-size:12px;color:var(--text2)}
+.mic-lbl.on{color:var(--ac)}
+.resp{display:none;margin:0 14px 6px;background:var(--surf);border:1px solid var(--border);border-radius:12px;padding:10px 13px}
+.resp.show{display:block}
+.resp-t{font-size:12px;color:var(--ac);margin-bottom:4px}
+.resp-m{font-size:14px;line-height:1.55;white-space:pre-wrap;color:#c8ddf0}
+@keyframes d{0%,80%,100%{opacity:.15}40%{opacity:1}}
+.dot{display:inline-block}.dot:nth-child(1){animation:d 1.2s 0s infinite}.dot:nth-child(2){animation:d 1.2s .25s infinite}.dot:nth-child(3){animation:d 1.2s .5s infinite}
+.tabs{display:flex;gap:5px;padding:8px 14px;border-bottom:1px solid var(--border)}
+.tab{flex:1;padding:8px 3px;border:1px solid var(--border);background:transparent;color:var(--text2);border-radius:8px;font-size:13px;cursor:pointer;font-family:inherit}
+.tab.act{background:rgba(59,158,255,0.12);border-color:var(--ac);color:var(--ac);font-weight:600}
+.view{padding:10px 14px;display:none}
+.view.act{display:block}
+.add-btn{width:100%;padding:10px;border:1.5px dashed rgba(59,158,255,0.3);border-radius:10px;background:transparent;color:var(--ac);font-size:14px;cursor:pointer;margin-bottom:8px;font-family:inherit}
+.card{background:var(--surf);border:1px solid var(--border);border-radius:12px;padding:10px 12px;margin-bottom:7px}
+.card.done{opacity:.45}
+.card-row{display:flex;align-items:flex-start;gap:9px}
+.chk{width:22px;height:22px;min-width:22px;border-radius:6px;border:1.5px solid var(--border);background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:12px;margin-top:1px;transition:all .15s}
+.chk.on{background:var(--ac2);border-color:var(--ac2);color:#000}
+.card-body{flex:1;min-width:0}
+.card-txt{font-size:15px;line-height:1.4;word-break:break-word;color:#d0e4f5}
+.card.done .card-txt{text-decoration:line-through}
+.card-meta{display:flex;gap:5px;align-items:center;flex-wrap:wrap;margin-top:4px}
+.badge{font-size:10px;font-weight:700;padding:2px 7px;border-radius:10px}
+.b-high{background:rgba(255,77,109,.15);color:var(--danger)}
+.b-med{background:rgba(255,179,71,.15);color:var(--warn)}
+.b-low{background:rgba(59,158,255,.1);color:var(--text2)}
+.card-dt{font-size:11px;color:var(--text2)}
+.card-acts{display:flex;gap:1px;flex-shrink:0}
+.ic-btn{background:transparent;border:none;font-size:15px;cursor:pointer;padding:3px 5px;color:var(--text2);border-radius:6px}
+.card-notes{font-size:12px;color:var(--text2);margin-top:6px;padding-top:6px;border-top:1px solid var(--border);white-space:pre-wrap}
+.empty{text-align:center;padding:28px 0;color:var(--text2);font-size:14px;line-height:1.7}
+.srch{width:100%;padding:10px 12px;background:var(--surf);border:1px solid var(--border);border-radius:10px;color:#d0e4f5;font-size:14px;outline:none;margin-bottom:8px;font-family:inherit}
+.chat-box{background:var(--surf);border:1px solid var(--border);border-radius:12px;padding:10px;min-height:150px;max-height:42vh;overflow-y:auto;margin-bottom:8px}
+.chat-ex-btn{display:block;width:100%;text-align:right;background:var(--surf2);border:1px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--text2);font-size:13px;margin-bottom:5px;cursor:pointer;font-family:inherit}
+.bubble{border-radius:10px;padding:9px 12px;margin-bottom:7px;font-size:14px;line-height:1.55;max-width:88%;word-break:break-word;white-space:pre-wrap}
+.bu{background:rgba(59,158,255,0.12);border:1px solid rgba(59,158,255,0.2);color:#b8daff;margin-right:auto;border-radius:10px 10px 4px 10px}
+.ba{background:var(--surf2);border:1px solid var(--border);color:#c8ddf0;margin-left:auto;border-radius:10px 10px 10px 4px}
+.chat-row{display:flex;gap:7px}
+.chat-in{flex:1;padding:10px 12px;background:var(--surf);border:1px solid var(--border);border-radius:10px;color:#d0e4f5;font-size:14px;outline:none;font-family:inherit}
+.send-btn{padding:10px 14px;background:rgba(59,158,255,0.12);border:1px solid rgba(59,158,255,0.3);border-radius:10px;color:var(--ac);font-size:14px;cursor:pointer;font-family:inherit;white-space:nowrap}
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.65);display:flex;align-items:flex-end;justify-content:center;z-index:99;display:none}
+.overlay.show{display:flex}
+.modal{background:#141d28;border-radius:20px 20px 0 0;border:1px solid var(--border);border-bottom:none;padding:18px 16px 34px;width:100%;max-width:430px}
+.modal-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.modal-title{font-size:15px;font-weight:600;color:#d0e4f5}
+.close-btn{background:transparent;border:none;font-size:17px;color:var(--text2);cursor:pointer}
+.ta{width:100%;padding:10px 12px;background:#0e1620;border:1px solid var(--border);border-radius:10px;color:#d0e4f5;font-size:14px;resize:vertical;outline:none;line-height:1.5;font-family:inherit}
+.prio-row{display:flex;gap:7px;margin-top:9px}
+.prio-btn{flex:1;padding:8px;border-radius:8px;border:1.5px solid var(--border);background:#0e1620;color:var(--text2);font-size:12px;cursor:pointer;font-family:inherit;transition:all .15s}
+.prio-btn.sel{border-color:var(--ac);color:var(--ac)}
+.modal-btns{display:flex;gap:8px;margin-top:13px}
+.btn-cancel{flex:1;padding:12px;border-radius:10px;background:#0e1620;border:1px solid var(--border);color:var(--text2);font-size:14px;cursor:pointer;font-family:inherit}
+.btn-ok{flex:1;padding:12px;border-radius:10px;background:rgba(59,158,255,0.12);border:1px solid rgba(59,158,255,0.3);color:var(--ac);font-size:14px;cursor:pointer;font-weight:600;font-family:inherit}
+/* auto-start overlay */
+.auto-overlay{position:fixed;inset:0;background:rgba(10,13,18,0.95);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:200;gap:16px;transition:opacity .4s}
+.auto-overlay.hide{opacity:0;pointer-events:none}
+.auto-ring{width:120px;height:120px;border-radius:50%;border:3px solid var(--ac);background:rgba(59,158,255,0.08);display:flex;align-items:center;justify-content:center;font-size:50px;animation:pulse 1.5s infinite}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(59,158,255,0.3)}50%{box-shadow:0 0 0 20px rgba(59,158,255,0)}}
+.auto-text{font-size:18px;font-weight:600;color:var(--ac)}
+.auto-sub{font-size:13px;color:var(--text2)}
+.auto-skip{margin-top:20px;padding:10px 24px;border:1px solid var(--border);border-radius:10px;background:transparent;color:var(--text2);font-size:13px;cursor:pointer;font-family:inherit}
+</style>
+</head>
+<body>
+
+<!-- AUTO-START MIC OVERLAY -->
+<div class="auto-overlay" id="auto-ov">
+  <div class="auto-ring">🎙️</div>
+  <div class="auto-text">מאזין...</div>
+  <div class="auto-sub" id="auto-sub">דבר עכשיו — "הוסף...", "קרא...", "סמן..."</div>
+  <button class="auto-skip" onclick="closeAuto()">דלג ← עבור לאפליקציה</button>
+</div>
+
+<div class="app">
+
+<div class="hdr">
+  <h1>🎙️ משימות קוליות</h1>
+  <p>עוזר ידיים-חופשיות לנהיגה • Galaxy S24</p>
+</div>
+
+<div class="stats">
+  <div class="stat"><div class="stat-n" id="s-tot">0</div><div class="stat-l">סה"כ</div></div>
+  <div class="stat"><div class="stat-n" style="color:var(--warn)" id="s-open">0</div><div class="stat-l">פתוחות</div></div>
+  <div class="stat"><div class="stat-n" style="color:var(--ac2)" id="s-done">0</div><div class="stat-l">הושלמו</div></div>
+</div>
+
+<div class="mic-wrap">
+  <button class="mic-btn" id="mic-btn" onclick="toggleMic()">🎙️</button>
+  <div class="mic-lbl" id="mic-lbl">לחץ לדיבור</div>
+</div>
+
+<div class="resp" id="resp">
+  <div class="resp-t" id="resp-t"></div>
+  <div class="resp-m" id="resp-m"></div>
+</div>
+
+<div class="tabs">
+  <button class="tab act" id="tb-tasks" onclick="sw('tasks')">📋 משימות</button>
+  <button class="tab" id="tb-search" onclick="sw('search')">🔍 חיפוש</button>
+  <button class="tab" id="tb-chat" onclick="sw('chat')">💬 שאל AI</button>
+</div>
+
+<div class="view act" id="view-tasks">
+  <button class="add-btn" onclick="openAdd()">+ הוסף משימה ידנית</button>
+  <div id="tlist"></div>
+</div>
+
+<div class="view" id="view-search">
+  <input class="srch" id="srch-in" placeholder="חפש לפי מילה או נושא..." oninput="renderSrch()" dir="rtl">
+  <div id="slist"></div>
+</div>
+
+<div class="view" id="view-chat">
+  <div class="chat-box" id="chat-box">
+    <div id="chat-ex">
+      <div style="font-size:12px;color:var(--text2);margin-bottom:7px">שאלות לדוגמה:</div>
+      <button class="chat-ex-btn" onclick="doChat('מה המשימות הדחופות שלי?')">מה המשימות הדחופות שלי?</button>
+      <button class="chat-ex-btn" onclick="doChat('כמה משימות פתוחות יש לי?')">כמה משימות פתוחות יש לי?</button>
+      <button class="chat-ex-btn" onclick="doChat('תסכם את כל המשימות שלי')">תסכם את כל המשימות שלי</button>
+      <button class="chat-ex-btn" onclick="doChat('איזו משימה הכי דחופה?')">איזו משימה הכי דחופה?</button>
+    </div>
+    <div id="chat-msgs"></div>
+  </div>
+  <div class="chat-row">
+    <input class="chat-in" id="chat-in" placeholder="שאל שאלה על המשימות..." dir="rtl" onkeydown="if(event.key==='Enter')sendFromInput()">
+    <button class="send-btn" onclick="sendFromInput()">שלח</button>
+  </div>
+</div>
+
+<!-- ADD MODAL -->
+<div class="overlay" id="add-ov" onclick="if(event.target===this)closeAdd()">
+  <div class="modal">
+    <div class="modal-hdr">
+      <span class="modal-title">הוסף משימה</span>
+      <button class="close-btn" onclick="closeAdd()">✕</button>
+    </div>
+    <textarea class="ta" id="add-ta" rows="3" placeholder="תיאור המשימה..." dir="rtl"></textarea>
+    <div class="prio-row">
+      <button class="prio-btn sel" id="ap-low"  onclick="setAP('low')">⚪ רגיל</button>
+      <button class="prio-btn"     id="ap-med"  onclick="setAP('medium')">🟠 חשוב</button>
+      <button class="prio-btn"     id="ap-high" onclick="setAP('high')">🔴 דחוף</button>
+    </div>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeAdd()">ביטול</button>
+      <button class="btn-ok" onclick="confirmAdd()">הוסף</button>
+    </div>
+  </div>
+</div>
+
+<!-- EDIT MODAL -->
+<div class="overlay" id="edit-ov" onclick="if(event.target===this)closeEdit()">
+  <div class="modal">
+    <div class="modal-hdr">
+      <span class="modal-title">עריכת משימה</span>
+      <button class="close-btn" onclick="closeEdit()">✕</button>
+    </div>
+    <textarea class="ta" id="edit-ta" rows="3" dir="rtl"></textarea>
+    <div class="prio-row">
+      <button class="prio-btn" id="ep-low"  onclick="setEP('low')">⚪ רגיל</button>
+      <button class="prio-btn" id="ep-med"  onclick="setEP('medium')">🟠 חשוב</button>
+      <button class="prio-btn" id="ep-high" onclick="setEP('high')">🔴 דחוף</button>
+    </div>
+    <textarea class="ta" id="edit-notes" rows="2" style="margin-top:8px;font-size:13px" placeholder="הערות (אופציונלי)" dir="rtl"></textarea>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeEdit()">ביטול</button>
+      <button class="btn-ok" onclick="confirmEdit()">שמור</button>
+    </div>
+  </div>
+</div>
+
+</div>
+
+<script>
+const SK='vtasks_v4';
+let tasks=[];
+let ap='low', ep='low', eid=null;
+let listening=false, recog=null, aibusy=false;
+let curView='tasks';
+let autoMode=true;
+
+try{tasks=JSON.parse(localStorage.getItem(SK)||'[]')}catch{}
+
+function save(){
+  try{localStorage.setItem(SK,JSON.stringify(tasks))}catch{}
+  updateStats();
+  if(curView==='tasks') render('tlist',tasks);
+  if(curView==='search') renderSrch();
+}
+
+function updateStats(){
+  const d=tasks.filter(t=>t.done).length;
+  document.getElementById('s-tot').textContent=tasks.length;
+  document.getElementById('s-open').textContent=tasks.length-d;
+  document.getElementById('s-done').textContent=d;
+}
+
+function fdt(iso){
+  try{return new Date(iso).toLocaleString('he-IL',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}
+  catch{return''}
+}
+
+function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+
+function badge(p){
+  if(p==='high') return'<span class="badge b-high">🔴 דחוף</span>';
+  if(p==='medium') return'<span class="badge b-med">🟠 חשוב</span>';
+  return'<span class="badge b-low">⚪ רגיל</span>';
+}
+
+function render(cid, list){
+  const el=document.getElementById(cid);
+  if(!list.length){
+    el.innerHTML='<div class="empty">אין משימות עדיין.<br>לחץ על המיקרופון ואמור "הוסף..."</div>';
+    return;
+  }
+  el.innerHTML=list.map(t=>`
+    <div class="card ${t.done?'done':''}">
+      <div class="card-row">
+        <button class="chk ${t.done?'on':''}" onclick="tog(${t.id})">${t.done?'✓':''}</button>
+        <div class="card-body">
+          <div class="card-txt">${esc(t.text)}</div>
+          <div class="card-meta">${badge(t.priority)}<span class="card-dt">${fdt(t.created)}</span></div>
+          ${t.notes?`<div class="card-notes">${esc(t.notes)}</div>`:''}
+        </div>
+        <div class="card-acts">
+          <button class="ic-btn" onclick="openEdit(${t.id})">✏️</button>
+          <button class="ic-btn" onclick="del(${t.id})">🗑️</button>
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+function renderSrch(){
+  const q=document.getElementById('srch-in').value.trim();
+  const f=q?tasks.filter(t=>t.text.includes(q)||(t.notes||'').includes(q)):tasks;
+  render('slist',f);
+}
+
+function sw(v){
+  curView=v;
+  ['tasks','search','chat'].forEach(n=>{
+    document.getElementById('view-'+n).classList.toggle('act',n===v);
+    document.getElementById('tb-'+n).classList.toggle('act',n===v);
+  });
+  if(v==='tasks') render('tlist',tasks);
+  if(v==='search') renderSrch();
+}
+
+function tog(id){tasks=tasks.map(t=>t.id===id?{...t,done:!t.done}:t);save()}
+function del(id){if(confirm('למחוק משימה זו?')){tasks=tasks.filter(t=>t.id!==id);save()}}
+
+function addTask(text,prio='low',notes=''){
+  if(!text.trim())return;
+  tasks.unshift({id:Date.now(),text:text.trim(),priority:prio,done:false,created:new Date().toISOString(),notes:notes||''});
+  save();
+}
+
+function setAP(p){
+  ap=p;
+  ['low','med','high'].forEach(x=>{
+    const k=x==='med'?'medium':x;
+    document.getElementById('ap-'+x).classList.toggle('sel',k===p);
+  });
+}
+function openAdd(){ap='low';setAP('low');document.getElementById('add-ta').value='';document.getElementById('add-ov').classList.add('show');setTimeout(()=>document.getElementById('add-ta').focus(),150)}
+function closeAdd(){document.getElementById('add-ov').classList.remove('show')}
+function confirmAdd(){const t=document.getElementById('add-ta').value.trim();if(t){addTask(t,ap);closeAdd()}}
+
+function setEP(p){
+  ep=p;
+  ['low','med','high'].forEach(x=>{
+    const k=x==='med'?'medium':x;
+    document.getElementById('ep-'+x).classList.toggle('sel',k===p);
+  });
+}
+function openEdit(id){
+  const t=tasks.find(x=>x.id===id);if(!t)return;
+  eid=id;ep=t.priority;
+  document.getElementById('edit-ta').value=t.text;
+  document.getElementById('edit-notes').value=t.notes||'';
+  setEP(ep);
+  document.getElementById('edit-ov').classList.add('show');
+}
+function closeEdit(){document.getElementById('edit-ov').classList.remove('show');eid=null}
+function confirmEdit(){
+  if(!eid)return;
+  const text=document.getElementById('edit-ta').value.trim();
+  const notes=document.getElementById('edit-notes').value.trim();
+  if(!text)return;
+  tasks=tasks.map(t=>t.id===eid?{...t,text,priority:ep,notes}:t);
+  save();closeEdit();
+}
+
+// --- Claude API ---
+async function claude(system,msg){
+  const r=await fetch('https://api.anthropic.com/v1/messages',{
+    method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,system,messages:[{role:'user',content:msg}]})
+  });
+  const d=await r.json();
+  return(d.content||[]).map(b=>b.text||'').join('').trim();
+}
+
+function speak(t){
+  if(!window.speechSynthesis)return;
+  window.speechSynthesis.cancel();
+  const u=new SpeechSynthesisUtterance(t);
+  u.lang='he-IL';u.rate=1.05;
+  window.speechSynthesis.speak(u);
+}
+
+function showResp(t,m,loading){
+  const box=document.getElementById('resp');
+  document.getElementById('resp-t').textContent=t?'💬 '+t:'';
+  document.getElementById('resp-m').innerHTML=loading
+    ?'<span class="dot">●</span> <span class="dot">●</span> <span class="dot">●</span>'
+    :(m||'');
+  box.classList.toggle('show',!!(t||m||loading));
+}
+
+async function processVoice(text){
+  // close auto overlay if open
+  closeAuto();
+  showResp(text,'',true);
+  const tj=JSON.stringify(tasks.map(t=>({id:t.id,text:t.text,priority:t.priority,done:t.done})));
+  const sys=`אתה עוזר אישי לניהול משימות. המשתמש מדבר בעברית תוך כדי נהיגה.
+רשימת המשימות (JSON): ${tj}
+
+החזר JSON בלבד (ללא markdown):
+{"action":"add"|"delete"|"done"|"undone"|"edit"|"read"|"search"|"answer","taskId":null,"taskText":null,"priority":"high"|"medium"|"low"|null,"searchKeyword":null,"spoken":"משפט קצר","display":"תשובה"}
+
+- add: taskText חובה. priority: high=דחוף/מיד, medium=חשוב/היום, low=שאר
+- delete/done/undone/edit: taskId חובה
+- search: searchKeyword חובה
+- אם לא ברור, הוסף כמשימה`;
+  try{
+    const raw=await claude(sys,text);
+    let j;try{j=JSON.parse(raw)}catch{j={action:'answer',spoken:raw,display:raw}}
+    const{action,taskId,taskText,priority,searchKeyword,spoken,display}=j;
+    if(action==='add'&&taskText) addTask(taskText,priority||'low');
+    else if(action==='delete'&&taskId){tasks=tasks.filter(t=>t.id!==taskId);save()}
+    else if(action==='done'&&taskId){tasks=tasks.map(t=>t.id===taskId?{...t,done:true}:t);save()}
+    else if(action==='undone'&&taskId){tasks=tasks.map(t=>t.id===taskId?{...t,done:false}:t);save()}
+    else if(action==='edit'&&taskId){tasks=tasks.map(t=>t.id===taskId?{...t,...(taskText?{text:taskText}:{}),...(priority?{priority}:{})}:t);save()}
+    else if(action==='search'&&searchKeyword){document.getElementById('srch-in').value=searchKeyword;sw('search')}
+    showResp(text,display||spoken||'',false);
+    if(spoken)speak(spoken);
+  }catch(e){
+    showResp(text,'שגיאה בעיבוד, נסה שוב',false);
+    speak('שגיאה, נסה שוב');
+  }
+}
+
+// --- mic ---
+function startMic(fromAuto){
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR){
+    if(fromAuto) closeAuto();
+    showResp('','⚠️ זיהוי קול לא נתמך. נסה Chrome.',false);
+    return;
+  }
+  if(listening) return;
+
+  recog=new SR();
+  recog.lang='he-IL';recog.continuous=false;recog.interimResults=true;
+  recog.onstart=()=>{
+    listening=true;
+    document.getElementById('mic-btn').classList.add('on');
+    document.getElementById('mic-lbl').textContent='מאזין... דבר עכשיו';
+    document.getElementById('mic-lbl').classList.add('on');
+    if(!fromAuto) showResp('','',false);
+  };
+  recog.onresult=e=>{
+    let interim='',final='';
+    for(let i=e.resultIndex;i<e.results.length;i++){
+      if(e.results[i].isFinal) final+=e.results[i][0].transcript;
+      else interim+=e.results[i][0].transcript;
+    }
+    // Update auto overlay or resp
+    if(autoMode && document.getElementById('auto-ov').style.opacity!=='0'){
+      document.getElementById('auto-sub').textContent=interim||final||'דבר עכשיו...';
+    }
+    if(interim) showResp(interim,'',false);
+    if(final){recog.stop();processVoice(final.trim())}
+  };
+  recog.onerror=e=>{
+    stopMic();
+    if(fromAuto && e.error==='not-allowed'){
+      closeAuto();
+      showResp('','⚠️ יש לאשר הרשאת מיקרופון. לחץ שוב על 🎙️',false);
+    }
+  };
+  recog.onend=()=>stopMic();
+  recog.start();
+}
+
+function toggleMic(){
+  if(aibusy)return;
+  if(listening){recog&&recog.stop();return}
+  startMic(false);
+}
+
+function stopMic(){
+  listening=false;
+  document.getElementById('mic-btn').classList.remove('on');
+  document.getElementById('mic-lbl').textContent='לחץ לדיבור';
+  document.getElementById('mic-lbl').classList.remove('on');
+}
+
+function closeAuto(){
+  autoMode=false;
+  const ov=document.getElementById('auto-ov');
+  ov.classList.add('hide');
+  setTimeout(()=>{ov.style.display='none'},400);
+}
+
+// --- chat ---
+function addBubble(role,txt){
+  document.getElementById('chat-ex').style.display='none';
+  const d=document.createElement('div');
+  d.className='bubble '+(role==='user'?'bu':'ba');
+  d.textContent=txt;
+  document.getElementById('chat-msgs').appendChild(d);
+  document.getElementById('chat-box').scrollTop=9999;
+  return d;
+}
+async function doChat(msg){
+  if(!msg.trim()||aibusy)return;
+  aibusy=true;
+  addBubble('user',msg);
+  document.getElementById('chat-in').value='';
+  const ld=addBubble('ai','● ● ●');
+  const tj=JSON.stringify(tasks.map(t=>({id:t.id,text:t.text,priority:t.priority,done:t.done,created:t.created,notes:t.notes})));
+  const sys=`אתה עוזר אישי לניהול משימות. ענה בעברית קצר וידידותי.
+רשימת המשימות: ${tj}`;
+  try{
+    const r=await claude(sys,msg);
+    ld.textContent=r;
+  }catch{ld.textContent='שגיאה, נסה שוב'}
+  finally{aibusy=false}
+}
+function sendFromInput(){doChat(document.getElementById('chat-in').value.trim())}
+
+// --- INIT: auto-start mic on page load ---
+window.addEventListener('load',()=>{
+  updateStats();
+  render('tlist',tasks);
+  // Auto-start mic after short delay
+  setTimeout(()=>{
+    startMic(true);
+  }, 600);
+});
+</script>
+
+</body>
+</html>
