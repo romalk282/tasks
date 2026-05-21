@@ -379,26 +379,10 @@ async function processVoice(text){
 }
 
 // --- mic ---
-// --- VAD: Voice Activity Detection ---
-let audioCtx=null, analyser=null, mediaStream=null, vadTimer=null, silenceTimer=null;
-let vadActive=false, speechDetected=false;
-const SILENCE_THRESHOLD=18;   // RMS below this = silence
-const SILENCE_DURATION=1400;  // ms of silence before auto-stop
-const MIN_SPEECH_MS=300;      // ignore blips shorter than this
-let speechStart=0;
+// --- Simple reliable mic: continuous=false, let Chrome handle silence ---
+let lastTranscript='';
 
-function getMicLabel(){return document.getElementById('mic-lbl')}
-function getMicBtn(){return document.getElementById('mic-btn')}
-
-function setMicUI(state){
-  const btn=getMicBtn(), lbl=getMicLabel();
-  btn.classList.toggle('on', state==='listening'||state==='detecting');
-  lbl.classList.toggle('on', state!=='idle');
-  const labels={idle:'לחץ לדיבור', waiting:'ממתין לדיבור...', detecting:'מזהה דיבור...', listening:'מאזין... 🎙️', processing:'מעבד...'};
-  lbl.textContent=labels[state]||'';
-}
-
-async function startMic(fromAuto){
+function startMic(fromAuto){
   const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
   if(!SR){
     if(fromAuto)closeAuto();
@@ -407,125 +391,81 @@ async function startMic(fromAuto){
   }
   if(listening)return;
 
-  try{
-    mediaStream=await navigator.mediaDevices.getUserMedia({audio:true});
-  }catch(e){
-    if(fromAuto)closeAuto();
-    showResp('','⚠️ יש לאשר הרשאת מיקרופון.',false);
-    return;
-  }
-
-  // Setup AudioContext for VAD
-  audioCtx=new (window.AudioContext||window.webkitAudioContext)();
-  analyser=audioCtx.createAnalyser();
-  analyser.fftSize=512;
-  const src=audioCtx.createMediaStreamSource(mediaStream);
-  src.connect(analyser);
-
-  listening=true;
-  vadActive=true;
-  speechDetected=false;
-  setMicUI('waiting');
-  if(!fromAuto)showResp('','',false);
-
-  startRecog(fromAuto);
-  startVAD();
-}
-
-function startRecog(fromAuto){
-  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
   recog=new SR();
   recog.lang='he-IL';
-  recog.continuous=true;
-  recog.interimResults=true;
+  recog.continuous=false;       // Chrome stops automatically after silence
+  recog.interimResults=true;    // Show live text while speaking
+  lastTranscript='';
+
+  recog.onstart=()=>{
+    listening=true;
+    document.getElementById('mic-btn').classList.add('on');
+    document.getElementById('mic-lbl').textContent='מאזין... דבר עכשיו';
+    document.getElementById('mic-lbl').classList.add('on');
+    if(!fromAuto)showResp('','',false);
+    if(autoMode)document.getElementById('auto-sub').textContent='דבר עכשיו...';
+  };
 
   recog.onresult=e=>{
     let interim='',final='';
     for(let i=e.resultIndex;i<e.results.length;i++){
-      if(e.results[i].isFinal)final+=e.results[i][0].transcript;
+      if(e.results[i].isFinal) final+=e.results[i][0].transcript;
       else interim+=e.results[i][0].transcript;
     }
-    const txt=final||interim;
-    if(txt){
-      setMicUI('listening');
-      showResp(txt,'',false);
-      if(autoMode){document.getElementById('auto-sub').textContent=txt}
+    // Store latest text
+    if(final) lastTranscript=final.trim();
+    else if(interim) lastTranscript=interim.trim();
+    // Show live
+    const display=final||interim;
+    if(display){
+      showResp(display,'',false);
+      if(autoMode)document.getElementById('auto-sub').textContent=display;
     }
-    if(final&&final.trim()){
-      // reset silence timer on new final result
-      clearTimeout(silenceTimer);
-      silenceTimer=setTimeout(()=>stopAndProcess(),SILENCE_DURATION);
-    }
+  };
+
+  // Chrome fires speechend when user stops talking
+  recog.onspeechend=()=>{
+    recog.stop();
   };
 
   recog.onerror=e=>{
-    if(e.error==='no-speech')return; // ignore, VAD handles this
-    if(e.error==='not-allowed'){if(fromAuto)closeAuto();showResp('','⚠️ יש לאשר הרשאת מיקרופון.',false)}
     stopMic();
+    if(e.error==='no-speech'){
+      showResp('','🤫 לא שמעתי כלום. לחץ ונסה שוב.',false);
+    } else if(e.error==='not-allowed'){
+      if(fromAuto)closeAuto();
+      showResp('','⚠️ יש לאשר הרשאת מיקרופון.',false);
+    }
   };
+
   recog.onend=()=>{
-    // restart if still active (Android Chrome stops recognition periodically)
-    if(vadActive&&listening){
-      try{recog.start()}catch(err){}
+    const hadText=!!lastTranscript;
+    stopMic();
+    // Process whatever we captured
+    if(hadText){
+      processVoice(lastTranscript);
     }
   };
-  try{recog.start()}catch(err){}
-}
 
-function startVAD(){
-  const buf=new Uint8Array(analyser.fftSize);
-  function tick(){
-    if(!vadActive)return;
-    analyser.getByteTimeDomainData(buf);
-    let sum=0;
-    for(let i=0;i<buf.length;i++){const v=(buf[i]-128)/128;sum+=v*v}
-    const rms=Math.sqrt(sum/buf.length)*100;
-
-    if(rms>SILENCE_THRESHOLD){
-      // Sound detected
-      if(!speechDetected){speechDetected=true;speechStart=Date.now()}
-      clearTimeout(silenceTimer);
-      if(Date.now()-speechStart>MIN_SPEECH_MS){setMicUI('detecting')}
-      silenceTimer=setTimeout(()=>{
-        if(speechDetected&&Date.now()-speechStart>MIN_SPEECH_MS){
-          stopAndProcess();
-        }
-      },SILENCE_DURATION);
-    }
-    vadTimer=requestAnimationFrame(tick);
-  }
-  vadTimer=requestAnimationFrame(tick);
-}
-
-function stopAndProcess(){
-  if(!vadActive)return;
-  const hadSpeech=speechDetected&&(Date.now()-speechStart>MIN_SPEECH_MS);
-  stopMic();
-  // Get last transcript from display
-  const t=document.getElementById('resp-t').textContent.replace('💬 ','').trim();
-  if(hadSpeech&&t) processVoice(t);
-  else if(!hadSpeech) setMicUI('idle');
-}
-
-function stopMic(){
-  vadActive=false;
-  listening=false;
-  cancelAnimationFrame(vadTimer);
-  clearTimeout(silenceTimer);
-  if(recog){try{recog.stop()}catch(e){}}
-  if(mediaStream){mediaStream.getTracks().forEach(t=>t.stop())}
-  if(audioCtx&&audioCtx.state!=='closed'){audioCtx.close()}
-  recog=null;audioCtx=null;analyser=null;mediaStream=null;
-  speechDetected=false;
-  setMicUI('idle');
-  closeAuto();
+  try{recog.start()}catch(err){setTimeout(()=>{try{recog.start()}catch(e){}},300)}
 }
 
 function toggleMic(){
   if(aibusy)return;
-  if(listening){stopMic();return}
+  if(listening){recog&&recog.stop();return}
   startMic(false);
 }
+
+function stopMic(){
+  listening=false;
+  if(recog){try{recog.abort()}catch(e){}}
+  recog=null;
+  document.getElementById('mic-btn').classList.remove('on');
+  document.getElementById('mic-lbl').textContent='לחץ לדיבור';
+  document.getElementById('mic-lbl').classList.remove('on');
+  closeAuto();
+}
+
 
 function closeAuto(){
   autoMode=false;
